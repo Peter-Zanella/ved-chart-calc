@@ -590,7 +590,7 @@ name = st.sidebar.text_input("Name", fd["name"], key=k("name"))
 gender = st.sidebar.selectbox("Gender", ["", "Male", "Female"],
                               index=["", "Male", "Female"].index(fd["gender"]), key=k("gender"))
 bdate = st.sidebar.date_input("Birth date", value=fd["date"],
-                              min_value=date(1800, 1, 1), max_value=date(2100, 12, 31), key=k("date"))
+                              min_value=date(1600, 1, 1), max_value=date(2100, 12, 31), key=k("date"))
 _tstr = st.sidebar.text_input("Birth time (local · 24h HH:MM)",
                               value=fd["time"].strftime("%H:%M"), key=k("time"),
                               help="Type the time directly, e.g. 09:05 or 13:55")
@@ -711,7 +711,7 @@ if view == "Prashna (horary)":
     if manual:
         mc1, mc2 = st.columns(2)
         m_date = mc1.date_input("Date (local at that place)", value=date.today(),
-                                min_value=date(1800, 1, 1), max_value=date(2100, 12, 31),
+                                min_value=date(1600, 1, 1), max_value=date(2100, 12, 31),
                                 key="prashna_date")
         m_tstr = mc2.text_input("Time (24h HH:MM)", value=datetime.now().strftime("%H:%M"),
                                 key="prashna_time", help="Type it directly, e.g. 09:05 or 13:55")
@@ -1279,7 +1279,7 @@ with tabs[10]:
         b1, b2, b3 = st.columns(3)
         b_name = b1.text_input("Partner name", key="cmp_name", placeholder="optional")
         b_date = b2.date_input("Partner birth date", value=date(1990, 1, 1),
-                               min_value=date(1800, 1, 1), max_value=date(2100, 12, 31),
+                               min_value=date(1600, 1, 1), max_value=date(2100, 12, 31),
                                key="cmp_date")
         b_tstr = b3.text_input("Birth time (24h HH:MM)", value="12:00", key="cmp_time",
                                help="Only the Moon's nakshatra/sign is needed; noon is a fair "

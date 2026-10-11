@@ -82,6 +82,7 @@ async function findPlace() {
     f.location.value = g.label;
     info.className = "hint ok";
     info.textContent = `${g.label} · ${g.lat.toFixed(4)}°, ${g.lon.toFixed(4)}° · ${g.iana || ""} ${g.offset_str}` +
+      (g.lmt ? " · local mean time from longitude (before standard time)" : "") +
       (g.approx ? " · time zone estimated from longitude, please check" : "");
     form.dataset.placeFor = placeKey();
     return true;

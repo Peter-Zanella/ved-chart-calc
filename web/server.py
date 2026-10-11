@@ -7,6 +7,7 @@
 import os, sys
 from datetime import date, datetime, time as dtime
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, Response
@@ -201,7 +202,28 @@ def place(q: str = Query(min_length=2), date_: date = Query(alias="date"),
     g = E.resolve_location(q, date_.year, date_.month, date_.day, hh, mm)
     if not g:
         raise HTTPException(404, "place not found")
-    return _jsonable(g)
+    return _jsonable(_local_mean_time(g, datetime.combine(date_, dtime(hh, mm))))
+
+
+# Switzerland kept local mean time in daily life until standard time (MEZ) came in on
+# 1 June 1894; the Bern time in tzdata (1853-1894) was only railway/telegraph time.
+_LMT_UNTIL = {"Europe/Zurich": datetime(1894, 6, 1)}
+
+
+def _local_mean_time(g: dict, local: datetime) -> dict:
+    """Before a place had zone time, clocks showed local mean time: the offset follows
+    the birthplace's own longitude (4 minutes per degree), not the zone's main city."""
+    iana = g.get("iana") or ""
+    try:
+        lmt = ZoneInfo(iana).tzname(local) == "LMT"
+    except Exception:
+        lmt = False
+    if not (lmt or local < _LMT_UNTIL.get(iana, datetime.min)):
+        return g
+    off = round(g["lon"] / 15.0, 4)
+    sec = round(abs(off) * 3600)
+    return {**g, "offset": off, "approx": False, "lmt": True,
+            "offset_str": f"LMT UTC{'+' if off >= 0 else '-'}{sec // 3600:02d}:{sec % 3600 // 60:02d}"}
 
 
 @app.get("/api/health")
