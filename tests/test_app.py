@@ -185,3 +185,23 @@ def test_equal_bhava_liestal_1957():
     from fastapi.testclient import TestClient
     from web.server import app
     assert 'data-v="bhava"' in TestClient(app).get("/").text
+
+
+def test_historic_dates_use_local_mean_time(monkeypatch):
+    from fastapi.testclient import TestClient
+    from web.server import app
+    E.geocode.cache_clear()
+    monkeypatch.setattr(E, "geocode", lambda q: {"lat": 47.5596, "lon": 7.5886,
+                                                 "label": "Basel, Switzerland", "iana": "Europe/Zurich"})
+    c = TestClient(app)
+    place = lambda d: c.get("/api/place", params={"q": "Basel", "date": d, "time": "10:00"}).json()
+    # Basel's own longitude: 7.5886° / 15 = 0h30m21s, not Zurich's LMT (0h34m08s)
+    for d in ("1650-06-01", "1848-03-15", "1890-01-01"):   # 1890: tzdata's Bern time
+        g = place(d)
+        assert g["lmt"] and abs(g["offset"] - 0.5059) < 1e-4 and g["offset_str"] == "LMT UTC+00:30"
+    g = place("1900-01-01")
+    assert g["offset"] == 1.0 and "lmt" not in g
+    for d in ("1650-06-01", "1848-03-15"):
+        r = c.post("/api/chart", json={"date": d, "time": "10:00", "lat": 47.5596, "lon": 7.5886,
+                                       "tz": 0.5059, "location": "Basel"})
+        assert r.status_code == 200 and r.json()["dashas"]
