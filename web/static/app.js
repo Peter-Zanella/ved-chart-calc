@@ -360,9 +360,26 @@ function planetTable(compact) {
     (compact ? "" : `<th>House</th><th>Nak. lord</th>`) + `<th>Dignity</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+// Nakshatra pada: 3°20′ steps; the 108 padas run Aries→Pisces through the navamshas
+const AIM = ["Dharma", "Artha", "Kāma", "Mokṣa"];   // fire, earth, air, water
+const dm = x => `${Math.floor(x)}°${String(Math.round((x % 1) * 60)).padStart(2, "0")}′`;
+function padaTable() {
+  const pl = state.chart.planets, span = 10 / 3;
+  const rows = [["Ascendant", pl.Ascendant], ...PLANETS.map(n => [n, pl[n]]), ...outerShown()].map(([n, p]) => {
+    const k = Math.floor(p.lon / span + 1e-9), nav = k % 12, a = (k * span) % 30;
+    const vg = nav === p.sign_idx ? ` <span class="muted">vargottama</span>` : "";
+    return `<tr${OUTER.includes(n) ? ` class="outer"` : ""}><td>${n === "Ascendant" ? "Lagna" : n}</td>` +
+      `<td>${p.nakshatra}</td><td class="num">${p.pada}</td><td><b>${esc(p.syllable ?? "")}</b></td>` +
+      `<td>${SIGNS[nav]}${vg}</td><td>${SIGN_LORD[nav]}</td><td>${AIM[nav % 4]}</td><td class="num">${dm(a)}–${dm(a + span)}</td></tr>`;
+  }).join("");
+  return `<table><thead><tr><th>Graha</th><th>Nakshatra</th><th>Pada</th><th>Syllable</th>` +
+    `<th>Navamsha</th><th>Lord</th><th>Aim</th><th>Span in sign</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
 function renderPlanets() {
   const c = state.chart;
   $("#planets").innerHTML = planetTable(false);
+  $("#padas").innerHTML = padaTable();
   renderUpagrahas();
   const rows = [];
   for (let h = 1; h <= 12; h++) {
