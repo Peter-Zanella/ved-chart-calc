@@ -109,6 +109,7 @@ dialog::backdrop { background: rgb(0 0 0 / .35); }
 #saved-list { list-style: none; padding: 0; margin: 0 0 1rem; }
 #saved-list li { display: flex; gap: .5rem; align-items: center; border-bottom: 1px solid var(--line); padding: .4rem 0; }
 #saved-list li button:first-child { flex: 1; text-align: left; border: 0; background: none; }
+.saved-io button { flex: 1; }
 
 footer { text-align: center; color: var(--mute); font-size: .8rem; padding: 1rem; }
 
