@@ -987,13 +987,18 @@ $("#btn-save").addEventListener("click", () => {
   alert(storeCharts(all) ? "Saved on this device." : "Could not save (browser storage is blocked).");
 });
 
-$("#btn-saved").addEventListener("click", () => {
+function renderSaved() {
   const all = savedCharts(), ul = $("#saved-list");
   const keys = Object.keys(all).sort((a, b) => a.localeCompare(b));
   ul.innerHTML = keys.length ? keys.map(k =>
     `<li><button data-open="${esc(k)}"><b>${esc(k)}</b><br><small class="muted">${dmy(all[k].date)} ${all[k].time} · ${esc(all[k].location)}</small></button>` +
     `<button data-del="${esc(k)}" aria-label="Delete ${esc(k)}">✕</button></li>`).join("")
     : `<li class="muted">Nothing saved yet. Calculate a chart and press Save.</li>`;
+  $("#btn-export").disabled = !keys.length;
+}
+$("#btn-saved").addEventListener("click", () => {
+  renderSaved();
+  $("#saved-msg").textContent = "Export saves all charts to a file. Import adds charts from such a file; ones you already have are skipped.";
   $("#saved-dlg").showModal();
 });
 $("#saved-list").addEventListener("click", e => {
@@ -1005,6 +1010,51 @@ $("#saved-list").addEventListener("click", e => {
   } else if (b.dataset.del && confirm(`Delete "${b.dataset.del}"?`)) {
     delete all[b.dataset.del]; storeCharts(all); b.closest("li").remove();
   }
+});
+
+// export / import: a JSON file with all saved charts, to move them to another device or keep a backup
+const SAME_FIELDS = ["date", "time", "lat", "lon", "tz"];
+const sameBirth = (a, b) => SAME_FIELDS.every(k => String(a[k]) === String(b[k]));
+function validChart(p) {
+  return p && typeof p === "object" && /^\d{4}-\d{2}-\d{2}$/.test(p.date) && /^\d{2}:\d{2}/.test(p.time) &&
+         ["lat", "lon", "tz"].every(k => Number.isFinite(Number(p[k])));
+}
+$("#btn-export").addEventListener("click", () => {
+  const charts = savedCharts();
+  const file = { app: "jyotisa", version: 1, exported: new Date().toISOString(), charts };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: "application/json" }));
+  const a = Object.assign(document.createElement("a"),
+    { href: url, download: `jyotisa-charts-${new Date().toISOString().slice(0, 10)}.json` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("#saved-msg").textContent = `Exported ${Object.keys(charts).length} chart(s).`;
+});
+$("#btn-import").addEventListener("click", () => $("#import-file").click());
+$("#import-file").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  const msg = $("#saved-msg");
+  let data;
+  try { data = JSON.parse(await f.text()); } catch { msg.textContent = "This file is not a chart export (no valid JSON)."; return; }
+  const charts = data && typeof data.charts === "object" ? data.charts : data;   // also accept a bare {name: chart} map
+  if (!charts || typeof charts !== "object" || Array.isArray(charts)) { msg.textContent = "This file contains no charts."; return; }
+  const all = savedCharts();
+  let added = 0, skipped = 0, bad = 0;
+  for (const [name, p] of Object.entries(charts)) {
+    if (!validChart(p)) { bad++; continue; }
+    const key = String(name).trim() || `Chart ${dmy(p.date)}`;
+    if (all[key] && sameBirth(all[key], p)) { skipped++; continue; }
+    let k = key;
+    for (let i = 2; all[k]; i++) k = `${key} (${i})`;            // same name, different data: keep both
+    const c = {};
+    for (const fl of ["name", "gender", "date", "time", "location", "city", "saved"]) if (p[fl] != null) c[fl] = String(p[fl]);
+    for (const fl of ["lat", "lon", "tz"]) c[fl] = Number(p[fl]);
+    all[k] = c; added++;
+  }
+  if (added && !storeCharts(all)) { msg.textContent = "Could not save (browser storage is blocked)."; return; }
+  renderSaved();
+  msg.textContent = `Imported ${added} chart(s)` + (skipped ? `, ${skipped} already saved` : "") +
+                    (bad ? `, ${bad} unreadable skipped` : "") + ".";
 });
 
 // ── start ───────────────────────────────────────────────────────────────────

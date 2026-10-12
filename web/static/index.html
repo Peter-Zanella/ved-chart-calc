@@ -334,6 +334,12 @@
     <h2>Saved charts</h2>
     <p class="hint">Stored in this browser on this device.</p>
     <ul id="saved-list"></ul>
+    <div class="row saved-io">
+      <button type="button" id="btn-export">Export file</button>
+      <button type="button" id="btn-import">Import file</button>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+    </div>
+    <p class="hint" id="saved-msg" aria-live="polite">Export saves all charts to a file. Import adds charts from such a file; ones you already have are skipped.</p>
     <form method="dialog"><button class="primary">Close</button></form>
   </dialog>
 
