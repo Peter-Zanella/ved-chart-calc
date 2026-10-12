@@ -73,7 +73,10 @@ def _compute(p: ChartIn) -> dict:
 
 @app.post("/api/chart")
 def chart(p: ChartIn):
-    return _jsonable(_compute(p))
+    c = _compute(p)
+    for r in c.get("outer_planets", {}).values():   # pada table: name-syllable like the grahas
+        r.setdefault("syllable", E.namakshara_of(r["lon"]))
+    return _jsonable(c)
 
 
 class RectifyIn(ChartIn):
