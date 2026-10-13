@@ -27,7 +27,7 @@ const dmy = iso => { const [y, m, d] = iso.slice(0, 10).split("-"); return `${d}
 const deg = pos => pos.split("°")[0];          // "7° 48'" -> "7"
 
 const state = { chart: null, params: null, style: "south", div: "d1", tab: "chart", loaded: {},
-                outer: false, upa: false };
+                outer: false, upa: false, node: "mean" };
 const form = $("#form");
 
 // ── prefs (per device) ──────────────────────────────────────────────────────
@@ -69,7 +69,8 @@ async function postJSON(url, body) {
   return r;
 }
 const chartBody = p => ({ date: p.date, time: p.time, lat: p.lat, lon: p.lon, tz: p.tz,
-                          location: p.location || "", name: p.name || "", gender: p.gender || "" });
+                          location: p.location || "", name: p.name || "", gender: p.gender || "",
+                          node: state.node });
 
 async function findPlace() {
   const f = form.elements, info = $("#place-info");
@@ -160,6 +161,7 @@ function render() {
     ["Sun", `${pl.Sun.sign} ${pl.Sun.pos}`],
     ["Dasha", [cur.maha, cur.antar, cur.pratyantar].filter(Boolean).join(" › ") || "—"],
   ];
+  $("#node-note").textContent = c.node === "true" ? "true nodes" : "mean nodes";
   $("#chips").innerHTML = chips.map(([k, v]) => `<span class="chip">${k} <b>${esc(v)}</b></span>`).join("");
   const o = state.origin, moved = o && (o.date !== p.date || o.time !== p.time);
   $("#shift-note").hidden = $("#shift-reset").hidden = !moved;
@@ -467,7 +469,8 @@ async function loadVarsha(year) {
   if (!year || year === state.varsha.target_year) { renderVarsha(); return; }
   try {
     const r = await fetch("api/chart", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: p.date, time: p.time, lat: p.lat, lon: p.lon, tz: p.tz, varsha_year: year }) });
+      body: JSON.stringify({ date: p.date, time: p.time, lat: p.lat, lon: p.lon, tz: p.tz, varsha_year: year,
+                            node: state.node }) });
     if (!r.ok) throw new Error();
     state.varsha = (await r.json()).varshaphala; renderVarsha();
   } catch { $("#vy").value = state.varsha.target_year; }
@@ -948,6 +951,8 @@ function segment(id, key, after) {
 }
 segment("#seg-style", "style", () => { renderChartTab(); renderTransits(); renderAkv(); renderVarsha(); renderJaimini(); });
 segment("#seg-div", "div", renderChartTab);
+// Rahu/Ketu as mean or true nodes: changes positions, so the whole chart is recalculated
+segment("#seg-node", "node", () => { if (!state.busy) calculate(state.params, { push: false, shifted: true }); });
 {
   const b = $("#btn-outer");
   const set = v => { state.outer = v; b.setAttribute("aria-pressed", v); };

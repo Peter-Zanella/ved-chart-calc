@@ -41,7 +41,7 @@ def _positions(local: datetime, lat: float, lon: float, full: bool) -> dict:
         E.swe.set_sid_mode(E.swe.SIDM_LAHIRI, 0, 0)
         out, retro = {"Ascendant": E._swe_asc(jd, lat, lon)}, set()
         for p in names:
-            r = E.swe.calc_ut(jd, E._SWE_ID[p], E.swe.FLG_SIDEREAL | E.swe.FLG_SPEED)[0]
+            r = E.swe.calc_ut(jd, E.swe_id(p), E.swe.FLG_SIDEREAL | E.swe.FLG_SPEED)[0]
             out[p] = E.norm(r[0])
             if r[3] < 0:
                 retro.add(p)

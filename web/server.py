@@ -60,15 +60,19 @@ class ChartIn(BaseModel):
     name: str = ""
     gender: str = ""
     varsha_year: Optional[int] = None
+    node: str = Field("mean", pattern="^(mean|true)$")   # Rahu/Ketu: mean or true node
 
 
 def _compute(p: ChartIn) -> dict:
     hh, mm = map(int, p.time.split(":"))
     if not (0 <= hh <= 23 and 0 <= mm <= 59):
         raise HTTPException(422, "time must be HH:MM (24h)")
-    return E.generate_chart(p.date.year, p.date.month, p.date.day, hh, mm,
-                            p.lat, p.lon, p.tz, p.location, p.name, p.gender,
-                            varsha_year=p.varsha_year)
+    with E.node_type(p.node == "true"):
+        c = E.generate_chart(p.date.year, p.date.month, p.date.day, hh, mm,
+                             p.lat, p.lon, p.tz, p.location, p.name, p.gender,
+                             varsha_year=p.varsha_year)
+        c["node"] = "true" if E.true_node_active() else "mean"
+    return c
 
 
 @app.post("/api/chart")
@@ -90,8 +94,9 @@ def rectify_(p: RectifyIn):
     hh, mm = map(int, p.time.split(":"))
     if not (0 <= hh <= 23 and 0 <= mm <= 59):
         raise HTTPException(422, "time must be HH:MM (24h)")
-    return rectify.sweep(p.date.year, p.date.month, p.date.day, hh, mm, p.lat, p.lon, p.tz,
-                         p.span, p.step)
+    with E.node_type(p.node == "true"):
+        return rectify.sweep(p.date.year, p.date.month, p.date.day, hh, mm, p.lat, p.lon, p.tz,
+                             p.span, p.step)
 
 
 # ── extra sections ──────────────────────────────────────────────────────────

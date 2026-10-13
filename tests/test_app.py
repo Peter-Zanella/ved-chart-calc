@@ -208,3 +208,23 @@ def test_historic_dates_use_local_mean_time(monkeypatch):
         r = c.post("/api/chart", json={"date": d, "time": "10:00", "lat": 47.5596, "lon": 7.5886,
                                        "tz": 0.5059, "location": "Basel"})
         assert r.status_code == 200 and r.json()["dashas"]
+
+
+def test_mean_and_true_node():
+    from fastapi.testclient import TestClient
+    from web.server import app
+    cl = TestClient(app)
+    p = {"date": "1957-08-24", "time": "13:55", "lat": 47.4833, "lon": 7.7356, "tz": 1}
+    mean, true = (cl.post("/api/chart", json={**p, "node": n}).json() for n in ("mean", "true"))
+    assert cl.post("/api/chart", json=p).json()["lons"]["Rahu"] == mean["lons"]["Rahu"]  # mean is the default
+    assert (mean["node"], true["node"]) == ("mean", "true")
+    # the true node swings up to about 1.7° around the mean node; Ketu stays opposite
+    d = (true["lons"]["Rahu"] - mean["lons"]["Rahu"] + 180) % 360 - 180
+    assert 0.01 < abs(d) < 2
+    assert abs((true["lons"]["Ketu"] - true["lons"]["Rahu"]) % 360 - 180) < 1e-9
+    assert true["lons"]["Moon"] == mean["lons"]["Moon"]
+    # the setting does not leak into the next request
+    assert cl.post("/api/chart", json=p).json()["lons"]["Rahu"] == mean["lons"]["Rahu"]
+    assert cl.post("/api/chart", json={**p, "node": "osculating"}).status_code == 422
+    r = cl.post("/api/rectify", json={**p, "node": "true", "span": 1440}).status_code
+    assert r == 200
