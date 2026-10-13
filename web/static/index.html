@@ -110,6 +110,10 @@
             <button id="btn-outer" aria-pressed="false" title="Show Uranus, Neptune and Pluto (display only, not used in any calculation)">Ur Ne Pl</button>
             <button id="btn-upa" aria-pressed="false" title="Show the upagrahas in D1 and D9 (display only, not used in any calculation)">Upagrahas</button>
           </div>
+          <div class="seg" id="seg-node" title="Rahu/Ketu: mean node (smoothed motion) or true node (osculating, actual position)">
+            <button data-v="mean" aria-pressed="true">Mean node</button>
+            <button data-v="true">True node</button>
+          </div>
         </div>
         <div class="split">
           <div class="chart-box" id="chart-box"></div>
@@ -355,7 +359,7 @@
     <form method="dialog"><button class="ghost" style="width:100%">Cancel</button></form>
   </dialog>
 
-  <footer>Lahiri ayanamsha · whole-sign houses · Swiss Ephemeris. For study and reflection.</footer>
+  <footer>Lahiri ayanamsha · whole-sign houses · Swiss Ephemeris · <span id="node-note">mean nodes</span>. For study and reflection.</footer>
   <script src="app.js"></script>
 </body>
 </html>

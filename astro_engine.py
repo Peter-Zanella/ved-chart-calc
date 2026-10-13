@@ -13,7 +13,7 @@ Accuracy tiers - tried automatically in order:
 """
 
 # ── stdlib ────────────────────────────────────────────────────────────────────
-import json, math, re, time, urllib.parse, urllib.request
+import contextlib, contextvars, json, math, re, time, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing   import Dict, List, Optional, Tuple
@@ -202,10 +202,27 @@ def _jd_to_dt_str(jd:float) -> str:
 _SWE_ID = {"Sun":0,"Moon":1,"Mercury":2,"Venus":3,"Mars":4,"Jupiter":5,"Saturn":6,"Rahu":10}
 _SWE_FL: Optional[int] = None
 
+# Rahu/Ketu: mean node (default) or true (osculating) node, Swiss Ephemeris only.
+# A ContextVar so concurrent requests with different settings don't mix.
+_TRUE_NODE: contextvars.ContextVar = contextvars.ContextVar("true_node", default=False)
+
+@contextlib.contextmanager
+def node_type(true_node: bool):
+    """Compute Rahu/Ketu as true nodes inside this block (mean nodes otherwise)."""
+    tok = _TRUE_NODE.set(bool(true_node))
+    try: yield
+    finally: _TRUE_NODE.reset(tok)
+
+def true_node_active() -> bool:
+    return bool(_SWE and _TRUE_NODE.get())
+
+def swe_id(name:str) -> int:
+    return 11 if name == "Rahu" and _TRUE_NODE.get() else _SWE_ID[name]   # 11 = SE_TRUE_NODE
+
 def _swe_planet(name:str, jd:float) -> float:
     global _SWE_FL
     if _SWE_FL is None: _SWE_FL = swe.FLG_SIDEREAL | swe.FLG_SPEED
-    return norm(swe.calc_ut(jd, _SWE_ID[name], _SWE_FL)[0][0])
+    return norm(swe.calc_ut(jd, swe_id(name), _SWE_FL)[0][0])
 
 def _swe_asc(jd:float, lat:float, lon:float) -> float:
     return norm(swe.houses_ex(jd, lat, lon, b"W", swe.FLG_SIDEREAL)[1][0])
